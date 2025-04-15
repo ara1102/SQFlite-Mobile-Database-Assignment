@@ -22,15 +22,93 @@ This is the entry point of the application. It ensures the database is initializ
 2. [home_page.dart](/lib/home_page.dart)
 This file handles the main user interface and CRUD logic.
 
-- Controllers: `nameController` and `contactController` handle input text.
-- `contacts` List: Stores all contacts fetched from the database.
-- `refreshContacts()`: Fetches updated contact list from the DB.
-- `selectedIndex`: Tracks which contact is being edited.
-- Buttons:
-    - Save: Creates a new contact.
-    - Update: Updates selected contact info.
-- `initState()`: Loads all contacts when the widget is initialized.
-- `dispose()`: Closes the database and disposes of controllers when the widget is destroyed.
+    - Controllers: `nameController` and `contactController` handle input text.
+        ```dart
+        TextEditingController nameController = TextEditingController();
+        TextEditingController contactController = TextEditingController();
+        ```
+    - `contacts` List: Stores all contacts fetched from the database.
+      ```dart
+      List<Contact> contacts = List.empty(growable: true);
+      ```
+    - `refreshContacts()`: Fetches updated contact list from the DB.
+      ```dart
+      Future<void> refreshContacts() async {
+          final data = await db.readAllContact();
+          setState(() {
+              contacts = data;
+          });
+      }
+      ```
+    - `selectedIndex`: Tracks which contact is being edited.
+    - Buttons:
+        - Save: Creates a new contact.
+          ```dart
+          ElevatedButton(
+                  onPressed: () async {
+                    String name = nameController.text.trim();
+                    String contact = contactController.text.trim();
+                    if (name.isNotEmpty && contact.isNotEmpty) {
+                      final newContact = Contact(name: name, contact: contact);
+                      await db.createContact(newContact);
+
+                      nameController.clear();
+                      contactController.clear();
+
+                      await refreshContacts();
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+          ```
+        - Update: Updates selected contact info.
+          ```dart
+          ElevatedButton(
+                  onPressed: () async {
+                    if (selectedIndex != -1) {
+                      String updatedName = nameController.text.trim();
+                      String updatedContact = contactController.text.trim();
+
+                      if (updatedName.isNotEmpty && updatedContact.isNotEmpty) {
+                        int contactId = contacts[selectedIndex].id!;
+
+                        final updatedContactObj = Contact(
+                          id: contactId,
+                          name: updatedName,
+                          contact: updatedContact,
+                        );
+
+                        await db.updateContact(updatedContactObj);
+
+                        nameController.clear();
+                        contactController.clear();
+                        selectedIndex = -1;
+
+                        await refreshContacts();
+                      }
+                    }
+                  },
+                  child: const Text('Update'),
+                ),
+          ```
+    - `initState()`: Loads all contacts when the widget is initialized.
+      ```dart
+      @override
+      void initState() {
+        super.initState();
+        refreshContacts();
+      }
+      ```
+    - `dispose()`: Closes the database and disposes of controllers when the widget is destroyed.
+      ```dart
+      @override
+      void dispose() {
+        db.database.then((database) => database.close());
+        nameController.dispose();
+        contactController.dispose();
+        super.dispose();
+      }
+      ```
 
 3. [contact.dart](/lib/contact.dart)
 
