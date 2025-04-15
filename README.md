@@ -130,10 +130,68 @@ This is a custom widget that displays a single contact in a styled card.
 5. [app_database.dart](/lib/app_database.dart)
 This file contains the database helper class, AppDatabase, that manages all SQflite operations using the sqflite package.
 - `_initializeDB()`: Sets up the local database file using the path provider.
+  ```dart
+  Future<Database> _initializeDB(String fileName) async{
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, fileName);
+    return await openDatabase(path, version: 1, onCreate: _createDB);
+  }
+  ```
 - `_createDB()`: Defines the schema for the contact table with CREATE TABLE.
+  ```dart
+  Future _createDB(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE $tableName (
+        $idField $idType,
+        $nameField $textType,
+        $contactField $textType
+      )
+    ''');
+  ```
 - `createContact()`: Inserts a new contact into the table.
+  ```dart
+  Future<Contact> createContact(Contact contact) async{
+    final db = await instance.database;
+    final id = await db.insert(tableName, contact.toJson());
+    return contact.copyWith(id: id);
+  }
+  ```
 - `readAllContact()`: Fetches all contacts as a list.
+  ```dart
+  Future<List<Contact>> readAllContact() async {
+    final db = await instance.database;
+    final result = await db.query(tableName);
+    return result.map((json)=> Contact.fromJson(json)).toList();
+  }
+  ```
 - `updateContact()`: Updates a specific contact by id.
+  ```dart
+  Future<int> updateContact(Contact contact) async {
+    final db = await instance.database;
+    return db.update(
+      tableName,
+      contact.toJson(),
+      where: "$idField = ?",
+      whereArgs: [contact.id],
+    );
+  }
+  ```
 - `deleteContact()`: Deletes a specific contact by id.
+  ```dart
+  Future<int> deleteContact(Contact contact) async {
+    final db = await instance.database;
+    return await db.delete(
+      tableName,
+      where: "$idField = ?",
+      whereArgs: [contact.id],
+    );
+  }
+  ```
 - `close()`: Closes the database connection.
+  ```dart
+  Future<void> close() async {
+    final db = await instance.database;
+    return db.close();
+  }
+  ```
 
